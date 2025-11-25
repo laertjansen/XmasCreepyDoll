@@ -1,0 +1,108 @@
+// Motion-activated motor wiggle + LED + Jingle Bells buzzer
+
+#define pinForwardsMotorB 9
+#define pinBackwardsMotorB 10
+
+#define speed 100
+#define wiggleInterval 45
+
+int pirPin = 3;
+int motionStatus = 0;
+int pirState = 0;
+
+#define LED1 7
+#define LED2 8
+#define BUZZER_PIN 2
+
+// Jingle Bells Melody
+char notes[] = "eeeeeeegcde fffffeeeeddedg";
+int noteDurations[] = {1,1,2,1,1,2,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2};
+int tempo = 200; 
+
+void setup() {
+  pinMode(pirPin, INPUT);
+  pinMode(pinForwardsMotorB, OUTPUT);
+  pinMode(pinBackwardsMotorB, OUTPUT);
+  pinMode(LED1, OUTPUT);
+  pinMode(LED2, OUTPUT);
+  pinMode(BUZZER_PIN, OUTPUT);
+
+  stopMotors();
+
+  digitalWrite(LED1, LOW);
+  digitalWrite(LED2, LOW);
+}
+
+void loop() {
+  motionStatus = digitalRead(pirPin);
+
+  if (motionStatus == HIGH && pirState == LOW) {
+    pirState = HIGH;
+    playJingleBellsWithVibration();
+    stopMotors();
+    noTone(BUZZER_PIN);
+  } 
+  else if (motionStatus == LOW && pirState == HIGH) {
+    pirState = LOW;
+    stopMotors();
+    noTone(BUZZER_PIN);
+  }
+
+  delay(50);
+}
+
+void runMotorsForward() { 
+  analogWrite(pinForwardsMotorB, speed); 
+  analogWrite(pinBackwardsMotorB, 0); 
+}
+void runMotorsBackward() { 
+  analogWrite(pinForwardsMotorB, 0); 
+  analogWrite(pinBackwardsMotorB, speed); 
+}
+void stopMotors() { 
+  analogWrite(pinForwardsMotorB, 0); 
+  analogWrite(pinBackwardsMotorB, 0); 
+}
+
+void playJingleBellsWithVibration() {
+  bool motorForward = true;
+
+  for (int i = 0; i < sizeof(notes)-1; i++) {
+    char noteChar = notes[i];
+    int duration = noteDurations[i] * tempo;
+    int frequency = charToFrequency(noteChar);
+
+    unsigned long startTime = millis();
+    while (millis() - startTime < duration) {
+      
+      if (motorForward) runMotorsForward();
+      else runMotorsBackward();
+      motorForward = !motorForward;
+
+      digitalWrite(LED1, motorForward ? HIGH : LOW);
+      digitalWrite(LED2, motorForward ? LOW : HIGH);
+
+      if (frequency > 0) tone(BUZZER_PIN, frequency);
+
+      delay(wiggleInterval);
+    }
+
+    noTone(BUZZER_PIN);
+  }
+
+  stopMotors();
+  digitalWrite(LED1, LOW);
+  digitalWrite(LED2, LOW);
+}
+
+int charToFrequency(char note) {
+  switch(note) {
+    case 'c': return 261;
+    case 'd': return 293;
+    case 'e': return 329;
+    case 'f': return 349;
+    case 'g': return 392;
+    case ' ': return 0; 
+    default: return 0;
+  }
+}
